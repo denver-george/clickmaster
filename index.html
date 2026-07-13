@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>ClickMaster — Мастер по клику</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg: #1a1a1a;
+            --card: #252525;
+            --accent: #ff9500;
+            --text: #ffffff;
+            --sub: #aaaaaa;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 15px;
+            max-width: 500px;
+            margin: 0 auto;
+            box-sizing: border-box;
+        }
+        .logo {
+            text-align: center;
+            font-size: 28px;
+            font-weight: 800;
+            margin: 10px 0 5px;
+            letter-spacing: -0.5px;
+        }
+        .logo span { color: var(--accent); }
+        .subtitle {
+            text-align: center;
+            color: var(--sub);
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+        .section { margin-bottom: 25px; }
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            padding-left: 10px;
+            border-left: 4px solid var(--accent);
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 8px;
+            background: var(--card);
+            color: var(--text);
+            border: none;
+            border-radius: 12px;
+            text-align: left;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        .btn:active { background: var(--accent); color: #000; border-color: var(--accent); }
+        .btn-sm { font-size: 14px; padding: 10px; }
+        .hidden { display: none; }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--sub);
+            font-size: 14px;
+        }
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            background: var(--card);
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        .radio-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .radio-group label {
+            flex: 1;
+            padding: 12px;
+            background: var(--card);
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            color: #fff;
+            border: 1px solid transparent;
+        }
+        .radio-group input:checked + span { color: var(--accent); font-weight: bold; }
+        .radio-group input { display: none; }
+
+        #photo-preview img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-right: 5px;
+        }
+
+        .tool-card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+        .tool-card.selected { border-color: var(--accent); }
+        .tool-card input { display: none; }
+        .tool-emoji { font-size: 32px; flex-shrink: 0; }
+        .tool-info { flex: 1; }
+        .tool-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
+        .tool-desc { color: var(--sub); font-size: 13px; line-height: 1.4; }
+        .tool-check {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            border: 2px solid #555;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: transparent;
+            margin-top: 10px;
+        }
+        .tool-card.selected .tool-check {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #000;
+        }
+
+        .submit-btn {
+            background: var(--accent);
+            color: #000;
+            font-weight: bold;
+            text-align: center;
+        }
+        .submit-btn:disabled {
+            background: #555;
+            color: #999;
+            cursor: not-allowed;
+        }
+        .back-btn { background: #333; text-align: center; margin-top: 5px; }
+        .status { text-align: center; padding: 30px 20px; }
+        .status h2 { color: var(--accent); }
+        .rental-notice {
+            background: #2a2a2a;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            color: var(--sub);
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ГЛАВНЫЙ ЭКРАН -->
+    <div id="screen-main">
+        <div class="logo">Click<span>Master</span></div>
+        <div class="subtitle">Мастер по клику • Электрика и сантехника</div>
+
+        <div class="section">
+            <div class="section-title">⚡ Электрика</div>
+            <button class="btn" onclick="openSub('electric', 'Свет')">💡 Свет (люстра / лампочка / бра)</button>
+            <button class="btn" onclick="openSub('electric', 'Розетки и выключатели')">🔌 Розетки и выключатели</button>
+            <button class="btn" onclick="openSub('electric', 'Подключение техники')">🔧 Подключение техники</button>
+        </div>
+
+        <div class="section">
+            <div class="section-title">💧 Сантехника</div>
+            <button class="btn" onclick="openSub('plumbing', 'Смесители и мойки')">🚰 Смесители и мойки</button>
+            <button class="btn" onclick="openSub('plumbing', 'Унитаз')">🚽 Унитаз</button>
+            <button class="btn" onclick="openSub('plumbing', 'Ванная комната')">🛁 Ванная комната</button>
+        </div>
+
+        <div class="section">
+            <div class="section-title">🔧 Аренда инструмента</div>
+            <button class="btn" onclick="openRental()">📦 Выбрать инструмент</button>
+        </div>
+
+        <button class="btn submit-btn" onclick="openSub('urgent', 'Срочный вызов')">🆘 СРОЧНЫЙ ВЫЗОВ</button>
+    </div>
+
+    <!-- ЭКРАН: ПОДКАТЕГОРИИ -->
+    <div id="screen-sub" class="hidden">
+        <h2 id="sub-title" style="text-align:center;"></h2>
+        <div id="sub-list"></div>
+        <button class="btn back-btn" onclick="goBack('main')">← Назад</button>
+    </div>
+
+    <!-- ЭКРАН: АРЕНДА — ВЫБОР ИНСТРУМЕНТОВ -->
+    <div id="screen-rental" class="hidden">
+        <h3 style="text-align:center;">🔧 Выберите инструменты</h3>
+        <p style="text-align:center;color:var(--sub);font-size:14px;">Можно выбрать несколько</p>
+
+        <div class="rental-notice" style="text-align:left;">
+            📄 <b>Документы для ознакомления:</b><br>
+            <a href="dogovor-arendy.txt" target="_blank" style="color:var(--accent);">📋 Договор аренды</a>
+        </div>
+
+        <div class="rental-notice" style="text-align:left;">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;color:#fff;font-size:14px;">
+                <input type="checkbox" id="rental-agree" onchange="toggleRentalButton()" style="width:20px;height:20px;accent-color:var(--accent);">
+                Я ознакомлен с договором аренды
+            </label>
+        </div>
+
+        <div id="rental-list"></div>
+
+        <div class="rental-notice">
+            📍 Самовывоз: г. Воронеж, Ленинский район<br>
+            Точный адрес сообщит мастер при подтверждении
+        </div>
+
+        <button class="btn submit-btn" id="rental-next-btn" onclick="openRentalForm()" disabled>Далее</button>
+        <button class="btn back-btn" onclick="goBack('main')">← Назад</button>
+    </div>
+
+    <!-- ЭКРАН: АРЕНДА — ФОРМА -->
+    <div id="screen-rental-form" class="hidden">
+        <h3 style="text-align:center;">📋 Оформление аренды</h3>
+
+        <p style="color:var(--sub);font-size:14px;">Выбрано: <span id="rental-selected"></span></p>
+
+        <label>📅 Дата и время, когда нужен инструмент</label>
+        <input type="text" id="rental-date" placeholder="Например: 25 апреля, с 10:00 до 18:00">
+
+        <label>👤 Ваше имя и телефон</label>
+        <input type="text" id="rental-contact" placeholder="Александр, +7 (999) 123-45-67">
+
+        <label>💬 Ваш Telegram (ссылка)</label>
+        <input type="text" id="rental-telegram" placeholder="@username или https://t.me/username">
+
+        <button class="btn submit-btn" onclick="submitRental()">✅ Отправить заявку</button>
+        <button class="btn back-btn" onclick="goBack('rental')">← Назад к выбору</button>
+    </div>
+
+    <!-- ЭКРАН: ФОРМА ЗАЯВКИ (Электрика / Сантехника / Срочный вызов) -->
+    <div id="screen-form" class="hidden">
+        <h3 id="form-title" style="text-align:center;"></h3>
+
+        <label>📝 Шаг 1/5: Опишите проблему</label>
+        <textarea id="desc" rows="3" placeholder="Что случилось? Что нужно сделать?"></textarea>
+
+        <label>📸 Шаг 2/5: Фото (до 5 шт.)</label>
+        <input type="file" id="photo" accept="image/*" multiple onchange="previewPhotos()">
+        <div id="photo-preview" style="margin-bottom:15px;"></div>
+
+        <label>⏱ Шаг 3/5: Срочность</label>
+        <div class="radio-group">
+            <label><input type="radio" name="urg" value="Обычная" checked><span>🟢 Обычная</span></label>
+            <label><input type="radio" name="urg" value="Срочно"><span>🟡 Срочно</span></label>
+            <label><input type="radio" name="urg" value="Авария"><span>🔴 Авария</span></label>
+        </div>
+
+        <label>📍 Шаг 4/5: Адрес, имя и телефон</label>
+        <input type="text" id="address" placeholder="ул. Ленина, 15, кв. 42, Александр, +79991234567">
+
+        <label>💬 Шаг 5/5: Ваш Telegram (ссылка)</label>
+        <input type="text" id="telegram" placeholder="@username или https://t.me/username">
+
+        <button class="btn submit-btn" onclick="submitForm()">✅ Отправить заявку</button>
+        <button class="btn back-btn" onclick="goBack('sub')">← Назад</button>
+    </div>
+
+    <!-- ЭКРАН: УСПЕХ -->
+    <div id="screen-success" class="hidden">
+        <div class="status">
+            <h2>✅ Заявка отправлена!</h2>
+            <p>Мастер свяжется с вами в ближайшее время.</p>
+            <button class="btn back-btn" style="margin-top:20px;" onclick="location.reload()">Новая заявка</button>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        // ============================================
+        // ЗАМЕНИ ЭТИ ДВЕ СТРОКИ НА СВОИ ДАННЫЕ
+        // ============================================
+        const BOT_TOKEN = "8885960353:AAEyRR48X1BLFbdlGv-Y2kwodf7jcyG8ptCY";
+        const YOUR_CHAT_ID = "8885960353";
+        // ============================================
+
+        let currentService = "";
+        let currentCategory = "";
+        let selectedTools = [];
+
+        const tools = [
+            {
+                emoji: "🔨",
+                name: "Перфоратор",
+                desc: "Сверлит бетон, а не соседей. Хотя если в воскресенье утром — может и соседей."
+            },
+            {
+                emoji: "🪚",
+                name: "Болгарка (УШМ)",
+                desc: "Режет металл как масло. Пальцы — тоже. Без кожуха даже не проси."
+            },
+            {
+                emoji: "📏",
+                name: "Лазерный уровень",
+                desc: "Показывает идеально ровную линию. В отличие от твоего глазомера после третьей чашки кофе."
+            }
+        ];
+
+        const subcategories = {
+            "Свет": ["Повесить люстру", "Заменить лампочку", "Установить бра/светильник"],
+            "Розетки и выключатели": ["Заменить розетку", "Заменить выключатель", "Установить новую розетку"],
+            "Подключение техники": ["Стиральная машина", "Посудомойка", "Варочная панель", "Духовой шкаф"],
+            "Смесители и мойки": ["Заменить смеситель (кухня)", "Заменить смеситель (ванная)", "Заменить сифон", "Установить мойку"],
+            "Унитаз": ["Заменить сиденье", "Устранить течь бачка", "Заменить унитаз"],
+            "Ванная комната": ["Полотенцесушитель", "Гигиенический душ", "Герметизация швов"],
+            "Срочный вызов": ["Прорыв трубы", "Нет света", "Искрит", "Другое"]
+        };
+
+        // === НАВИГАЦИЯ ===
+
+        function openSub(category, sub) {
+            currentCategory = category;
+            currentService = sub;
+            document.getElementById('sub-title').innerText = sub;
+            document.getElementById('screen-main').classList.add('hidden');
+            document.getElementById('screen-sub').classList.remove('hidden');
+
+            const list = document.getElementById('sub-list');
+            list.innerHTML = "";
+            subcategories[sub].forEach(item => {
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-sm';
+                btn.innerText = item;
+                btn.onclick = () => openForm(category + ": " + sub + " → " + item);
+                list.appendChild(btn);
+            });
+        }
+
+        function openForm(service) {
+            currentService = service;
+            document.getElementById('form-title').innerText = service;
+            document.getElementById('screen-sub').classList.add('hidden');
+            document.getElementById('screen-form').classList.remove('hidden');
+        }
+
+        function openRental() {
+            selectedTools = [];
+            document.getElementById('rental-agree').checked = false;
+            document.getElementById('rental-next-btn').disabled = true;
+            document.getElementById('screen-main').classList.add('hidden');
+            document.getElementById('screen-rental').classList.remove('hidden');
+            renderRentalCards();
+        }
+
+        function renderRentalCards() {
+            const list = document.getElementById('rental-list');
+            list.innerHTML = "";
+            tools.forEach((tool, index) => {
+                const card = document.createElement('div');
+                card.className = 'tool-card';
+                card.onclick = () => toggleTool(index, card);
+
+                card.innerHTML = `
+                    <div class="tool-emoji">${tool.emoji}</div>
+                    <div class="tool-info">
+                        <div class="tool-name">${tool.name}</div>
+                        <div class="tool-desc">${tool.desc}</div>
+                    </div>
+                    <div class="tool-check">✓</div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function toggleTool(index, card) {
+            if (selectedTools.includes(index)) {
+                selectedTools = selectedTools.filter(i => i !== index);
+                card.classList.remove('selected');
+            } else {
+                selectedTools.push(index);
+                card.classList.add('selected');
+            }
+        }
+
+        function toggleRentalButton() {
+            const agree = document.getElementById('rental-agree').checked;
+            document.getElementById('rental-next-btn').disabled = !agree;
+        }
+
+        function openRentalForm() {
+            if (selectedTools.length === 0) {
+                alert("Выберите хотя бы один инструмент.");
+                return;
+            }
+            const names = selectedTools.map(i => tools[i].name).join(", ");
+            document.getElementById('rental-selected').innerText = names;
+            document.getElementById('screen-rental').classList.add('hidden');
+            document.getElementById('screen-rental-form').classList.remove('hidden');
+        }
+
+        function goBack(screen) {
+            document.querySelectorAll('#screen-main, #screen-sub, #screen-form, #screen-rental, #screen-rental-form, #screen-success').forEach(el => el.classList.add('hidden'));
+            document.getElementById('screen-' + screen).classList.remove('hidden');
+        }
+
+        function previewPhotos() {
+            const preview = document.getElementById('photo-preview');
+            preview.innerHTML = "";
+            const files = document.getElementById('photo').files;
+            for (let i = 0; i < Math.min(files.length, 5); i++) {
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(files[i]);
+                preview.appendChild(img);
+            }
+        }
+
+        // === ОТПРАВКА ===
+
+        async function sendTo(chatId, text, photos) {
+            const urlText = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+            await fetch(urlText, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    text: text,
+                    parse_mode: 'Markdown'
+                })
+            });
+
+            if (photos && photos.length > 0) {
+                for (let i = 0; i < photos.length; i++) {
+                    const formData = new FormData();
+                    formData.append('chat_id', chatId);
+                    formData.append('photo', photos[i]);
+                    formData.append('caption', i === 0 ? `📸 Фото к заявке: ${currentService}` : '');
+                    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                }
+            }
+        }
+
+        async function submitForm() {
+            const desc = document.getElementById('desc').value;
+            const urgency = document.querySelector('input[name="urg"]:checked').value;
+            const address = document.getElementById('address').value;
+            const tgContact = document.getElementById('telegram').value;
+            const photos = document.getElementById('photo').files;
+
+            if (!desc || !address) {
+                alert("Пожалуйста, заполните описание и адрес.");
+                return;
+            }
+
+            let text = `🛠 *НОВАЯ ЗАЯВКА — ClickMaster*\n`;
+            text += `📋 *Услуга:* ${currentService}\n`;
+            text += `📝 *Описание:* ${desc}\n`;
+            text += `⏱ *Срочность:* ${urgency}\n`;
+            text += `📍 *Адрес:* ${address}\n`;
+            if (tgContact) text += `💬 *Telegram:* ${tgContact}\n`;
+
+            await sendTo(YOUR_CHAT_ID, text, photos);
+
+            document.getElementById('screen-form').classList.add('hidden');
+            document.getElementById('screen-success').classList.remove('hidden');
+        }
+
+        async function submitRental() {
+            const date = document.getElementById('rental-date').value;
+            const contact = document.getElementById('rental-contact').value;
+            const tgContact = document.getElementById('rental-telegram').value;
+
+            if (!date || !contact) {
+                alert("Пожалуйста, заполните дату и контакты.");
+                return;
+            }
+
+            const names = selectedTools.map(i => tools[i].name).join(", ");
+            let text = `🔧 *ЗАЯВКА НА АРЕНДУ — ClickMaster*\n`;
+            text += `📦 *Инструменты:* ${names}\n`;
+            text += `📅 *Дата и время:* ${date}\n`;
+            text += `👤 *Контакты:* ${contact}\n`;
+            if (tgContact) text += `💬 *Telegram:* ${tgContact}\n`;
+            text += `📍 *Самовывоз:* Ленинский район\n`;
+
+            await sendTo(YOUR_CHAT_ID, text, null);
+
+            document.getElementById('screen-rental-form').classList.add('hidden');
+            document.getElementById('screen-success').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
