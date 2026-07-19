@@ -180,9 +180,12 @@
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+        let selectedTools = [];
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+        }
 
         // ============================================
         // ЗАМЕНИ ЭТИ ЧЕТЫРЕ СТРОКИ НА СВОИ ДАННЫЕ
@@ -196,12 +199,11 @@
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // Получаем Telegram user_id (если открыто через Telegram)
-        const telegramUserId = tg.initDataUnsafe?.user?.id || null;
+        const telegramUserId = tg?.initDataUnsafe?.user?.id || null;
 
         let currentService = "";
         let currentServiceShort = "";
         let currentCategory = "";
-        let selectedTools = [];
         let isSending = false;
 
         const tools = [
