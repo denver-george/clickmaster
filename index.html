@@ -193,7 +193,7 @@
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkb3Brb3Jod2d1b2dlc3pmZnp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMTk4ODksImV4cCI6MjA5OTc5NTg4OX0._yD9epejV2-iNOooXAJsCOggXzucrhzq9v5tpHk671w";
         // ============================================
 
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // Получаем Telegram user_id (если открыто через Telegram)
         const telegramUserId = tg.initDataUnsafe?.user?.id || null;
@@ -338,7 +338,7 @@
             const clientPhone = addrParts.length > 1 ? addrParts[addrParts.length - 1] : "";
             const addrClean = addrParts.length > 2 ? addrParts.slice(0, -2).join(", ") : addrParts[0];
 
-            const { data, error } = await supabase
+            const { data, error } = await db
                 .from('orders')
                 .insert([{
                     type: 'repair',
@@ -403,7 +403,7 @@
             const clientPhone = contactParts.length > 1 ? contactParts.slice(1).join(", ") : "";
             const names = selectedTools.map(i => tools[i].name).join(", ");
 
-            const { data, error } = await supabase
+            const { data, error } = await db
                 .from('orders')
                 .insert([{
                     type: 'rental',
