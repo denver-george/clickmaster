@@ -116,7 +116,7 @@
         <p style="text-align:center;color:var(--sub);font-size:14px;">Можно выбрать несколько</p>
         <div class="rental-notice" style="text-align:left;">
             📄 <b>Документы для ознакомления:</b><br>
-            <a href="dogovor-arendy.txt" target="_blank" style="color:var(--accent);">📋 Договор аренды</a>
+            <a href="dogovor-arendy.pdf" target="_blank" style="color:var(--accent);">📋 Договор аренды (PDF)</a>
         </div>
         <div class="rental-notice" style="text-align:left;">
             <label style="display:flex;align-items:center;gap:10px;cursor:pointer;color:#fff;font-size:14px;">
@@ -193,8 +193,10 @@
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkb3Brb3Jod2d1b2dlc3pmZnp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMTk4ODksImV4cCI6MjA5OTc5NTg4OX0._yD9epejV2-iNOooXAJsCOggXzucrhzq9v5tpHk671w";
         // ============================================
 
-        // Инициализация Supabase
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Получаем Telegram user_id (если открыто через Telegram)
+        const telegramUserId = tg.initDataUnsafe?.user?.id || null;
 
         let currentService = "";
         let currentServiceShort = "";
@@ -218,7 +220,6 @@
             "Срочный вызов": ["Прорыв трубы", "Нет света", "Искрит", "Другое"]
         };
 
-        // === НАВИГАЦИЯ ===
         function openSub(category, sub) {
             currentCategory = category;
             currentService = sub;
@@ -299,7 +300,6 @@
             }
         }
 
-        // === ОТПРАВКА В TELEGRAM ===
         async function sendToTelegram(chatId, text, photos) {
             const urlText = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
             await fetch(urlText, {
@@ -318,7 +318,6 @@
             }
         }
 
-        // === ОТПРАВКА ФОРМЫ (РЕМОНТ) ===
         async function submitForm() {
             if (isSending) return;
             isSending = true;
@@ -339,7 +338,6 @@
             const clientPhone = addrParts.length > 1 ? addrParts[addrParts.length - 1] : "";
             const addrClean = addrParts.length > 2 ? addrParts.slice(0, -2).join(", ") : addrParts[0];
 
-            // Сохраняем в Supabase
             const { data, error } = await supabase
                 .from('orders')
                 .insert([{
@@ -350,6 +348,7 @@
                     client_name: clientName,
                     client_phone: clientPhone,
                     client_telegram: tgContact || null,
+                    client_telegram_id: telegramUserId,
                     address: addrClean,
                     urgency: urgency
                 }])
@@ -386,7 +385,6 @@
             isSending = false; btn.innerText = "✅ Отправить заявку"; btn.disabled = false;
         }
 
-        // === ОТПРАВКА ФОРМЫ (АРЕНДА) ===
         async function submitRental() {
             if (isSending) return;
             isSending = true;
@@ -405,7 +403,6 @@
             const clientPhone = contactParts.length > 1 ? contactParts.slice(1).join(", ") : "";
             const names = selectedTools.map(i => tools[i].name).join(", ");
 
-            // Сохраняем в Supabase
             const { data, error } = await supabase
                 .from('orders')
                 .insert([{
@@ -415,6 +412,7 @@
                     client_name: clientName,
                     client_phone: clientPhone,
                     client_telegram: tgContact || null,
+                    client_telegram_id: telegramUserId,
                     pickup_time: date
                 }])
                 .select('id')
