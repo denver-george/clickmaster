@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClickMaster — Админ-панель</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg: #1a1a1a;
+            --card: #252525;
+            --accent: #ff9500;
+            --text: #ffffff;
+            --sub: #aaaaaa;
+            --green: #4caf50;
+            --red: #f44336;
+            --yellow: #ffc107;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 15px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .hidden { display: none; }
+        h1 { font-size: 24px; margin-bottom: 20px; }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            background: var(--card);
+            color: var(--text);
+            border: 1px solid #444;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 10px;
+            font-family: inherit;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: var(--card);
+            color: var(--text);
+            border: 1px solid #444;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-accent { background: var(--accent); color: #000; border: none; font-weight: bold; }
+        .btn-danger { background: #c0392b; color: #fff; border: none; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+            font-size: 14px;
+        }
+        th { color: var(--sub); font-weight: normal; }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-new { background: #3a3a3a; color: #fff; }
+        .status-accepted { background: #fff3cd; color: #856404; }
+        .status-assigned { background: #cce5ff; color: #004085; }
+        .status-done { background: #d4edda; color: #155724; }
+        .status-ready { background: #d1ecf1; color: #0c5460; }
+        .status-issued { background: #d4edda; color: #155724; }
+        .status-returned { background: #e2e3e5; color: #383d41; }
+        
+        .card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .filter-bar { margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .filter-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid #444;
+            background: var(--card);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+        
+        .tabs { display: flex; gap: 0; margin-bottom: 20px; }
+        .tab {
+            padding: 10px 20px;
+            background: var(--card);
+            border: 1px solid #444;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--sub);
+        }
+        .tab:first-child { border-radius: 8px 0 0 8px; }
+        .tab:last-child { border-radius: 0 8px 8px 0; }
+        .tab.active { background: var(--accent); color: #000; }
+        
+        .detail-row { margin-bottom: 10px; }
+        .detail-label { color: var(--sub); font-size: 12px; }
+        .detail-value { font-size: 15px; }
+    </style>
+</head>
+<body>
+
+    <!-- ЭКРАН ВХОДА -->
+    <div id="screen-login">
+        <h1>🔐 Вход в админ-панель</h1>
+        <input type="password" id="password" placeholder="Введите пароль">
+        <button class="btn btn-accent" onclick="login()" style="width:100%;">Войти</button>
+    </div>
+
+    <!-- ОСНОВНОЙ ЭКРАН -->
+    <div id="screen-main" class="hidden">
+        <h1>🔧 ClickMaster — Админ-панель</h1>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('orders')">📋 Заявки</div>
+            <div class="tab" onclick="switchTab('masters')">👨‍🔧 Мастера</div>
+        </div>
+
+        <!-- ЗАЯВКИ -->
+        <div id="tab-orders">
+            <div class="filter-bar">
+                <button class="filter-btn active" onclick="filterOrders('all')">Все</button>
+                <button class="filter-btn" onclick="filterOrders('new')">Новые</button>
+                <button class="filter-btn" onclick="filterOrders('accepted')">Принятые</button>
+                <button class="filter-btn" onclick="filterOrders('assigned')">С мастерами</button>
+                <button class="filter-btn" onclick="filterOrders('done')">Готово</button>
+                <button class="filter-btn" onclick="filterOrders('ready')">Готов к выдаче</button>
+                <button class="filter-btn" onclick="filterOrders('issued')">Выдано</button>
+                <button class="filter-btn" onclick="filterOrders('returned')">Возвращено</button>
+            </div>
+            
+            <table id="orders-table">
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>Тип</th>
+                        <th>Услуга</th>
+                        <th>Клиент</th>
+                        <th>Статус</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- МАСТЕРА -->
+        <div id="tab-masters" class="hidden">
+            <button class="btn btn-accent btn-sm" onclick="showAddMaster()">+ Добавить мастера</button>
+            <table id="masters-table">
+                <thead>
+                    <tr>
+                        <th>Имя</th>
+                        <th>Телефон</th>
+                        <th>Специальность</th>
+                        <th>Статус</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- ДЕТАЛИ ЗАЯВКИ -->
+        <div id="screen-detail" class="hidden">
+            <button class="btn" onclick="closeDetail()">← Назад к списку</button>
+            <div class="card" id="detail-content"></div>
+        </div>
+        
+        <!-- ДОБАВЛЕНИЕ МАСТЕРА -->
+        <div id="screen-add-master" class="hidden">
+            <button class="btn" onclick="closeAddMaster()">← Назад</button>
+            <div class="card">
+                <h3>Новый мастер</h3>
+                <input type="text" id="master-name" placeholder="Имя">
+                <input type="text" id="master-phone" placeholder="Телефон">
+                <select id="master-specialty">
+                    <option value="electric">Электрика</option>
+                    <option value="plumbing">Сантехника</option>
+                </select>
+                <input type="text" id="master-telegram" placeholder="Telegram (необязательно)">
+                <button class="btn btn-accent" onclick="addMaster()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // ПОДСТАВЬ СВОИ ДАННЫЕ
+        // ============================================
+        const SUPABASE_URL = "https://ddopkorhwguogeszffzt.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkb3Brb3Jod2d1b2dlc3pmZnp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMTk4ODksImV4cCI6MjA5OTc5NTg4OX0._yD9epejV2-iNOooXAJsCOggXzucrhzq9v5tpHk671w";
+        const ADMIN_PASSWORD = "denver16george3252";  // ← ПОМЕНЯЙ ПАРОЛЬ!
+        // ============================================
+
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        let currentFilter = 'all';
+        let allOrders = [];
+
+        function login() {
+            const pass = document.getElementById('password').value;
+            if (pass === ADMIN_PASSWORD) {
+                document.getElementById('screen-login').classList.add('hidden');
+                document.getElementById('screen-main').classList.remove('hidden');
+                loadOrders();
+                loadMasters();
+            } else {
+                alert('Неверный пароль');
+            }
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tab).classList.remove('hidden');
+        }
+
+        async function loadOrders() {
+            const { data, error } = await db
+                .from('orders')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) { console.error(error); return; }
+            allOrders = data;
+            renderOrders();
+        }
+
+        function renderOrders() {
+            const filtered = currentFilter === 'all' 
+                ? allOrders 
+                : allOrders.filter(o => o.status === currentFilter);
+
+            const tbody = document.querySelector('#orders-table tbody');
+            tbody.innerHTML = '';
+            
+            filtered.forEach(order => {
+                const statusClass = 'status-' + order.status;
+                const statusText = {
+                    'new': 'Новая',
+                    'accepted': 'Принята',
+                    'assigned': 'Назначен мастер',
+                    'done': 'Готово',
+                    'ready': 'Готов к выдаче',
+                    'issued': 'Выдано',
+                    'returned': 'Возвращён'
+                }[order.status] || order.status;
+
+                const typeText = order.type === 'repair' ? '🔧 Ремонт' : '📦 Аренда';
+                const serviceText = order.type === 'repair' ? order.service : order.tools;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>#${order.id}</td>
+                    <td>${typeText}</td>
+                    <td>${serviceText || '—'}</td>
+                    <td>${order.client_name || '—'}</td>
+                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                    <td><button class="btn btn-sm" onclick="openDetail(${order.id})">Открыть</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterOrders(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            renderOrders();
+        }
+
+        async function openDetail(orderId) {
+            const order = allOrders.find(o => o.id === orderId);
+            if (!order) return;
+
+            const statusOptions = order.type === 'repair'
+                ? ['new', 'accepted', 'assigned', 'done']
+                : ['new', 'accepted', 'ready', 'issued', 'returned'];
+
+            const statusLabels = {
+                'new': 'Новая',
+                'accepted': 'Принята',
+                'assigned': 'Назначен мастер',
+                'done': 'Готово',
+                'ready': 'Готов к выдаче',
+                'issued': 'Выдано',
+                'returned': 'Возвращён'
+            };
+
+            const { data: masters } = await db.from('masters').select('*').eq('is_active', true);
+
+            let masterOptions = '<option value="">— Не назначен —</option>';
+            masters.forEach(m => {
+                masterOptions += `<option value="${m.id}" ${order.master_id === m.id ? 'selected' : ''}>${m.name} (${m.specialty === 'electric' ? 'Электрика' : 'Сантехника'})</option>`;
+            });
+
+            let statusSelect = '';
+            statusOptions.forEach(s => {
+                statusSelect += `<option value="${s}" ${order.status === s ? 'selected' : ''}>${statusLabels[s]}</option>`;
+            });
+
+            document.getElementById('detail-content').innerHTML = `
+                <h2>Заявка №${order.id}</h2>
+                
+                <div class="detail-row">
+                    <div class="detail-label">📋 Услуга</div>
+                    <div class="detail-value">${order.type === 'repair' ? order.service : order.tools}</div>
+                </div>
+
+                ${order.description ? `
+                <div class="detail-row">
+                    <div class="detail-label">📝 Описание</div>
+                    <div class="detail-value">${order.description}</div>
+                </div>` : ''}
+
+                <div class="detail-row">
+                    <div class="detail-label">👤 Клиент</div>
+                    <div class="detail-value">${order.client_name || '—'}</div>
+                </div>
+
+                <div class="detail-row">
+                    <div class="detail-label">📞 Телефон</div>
+                    <div class="detail-value">${order.client_phone || '—'}</div>
+                </div>
+
+                ${order.client_telegram ? `
+                <div class="detail-row">
+                    <div class="detail-label">💬 Telegram</div>
+                    <div class="detail-value">${order.client_telegram}</div>
+                </div>` : ''}
+
+                ${order.address ? `
+                <div class="detail-row">
+                    <div class="detail-label">📍 Адрес</div>
+                    <div class="detail-value">${order.address}</div>
+                </div>` : ''}
+
+                ${order.pickup_time ? `
+                <div class="detail-row">
+                    <div class="detail-label">📅 Когда нужен</div>
+                    <div class="detail-value">${order.pickup_time}</div>
+                </div>` : ''}
+
+                ${order.urgency ? `
+                <div class="detail-row">
+                    <div class="detail-label">⏱ Срочность</div>
+                    <div class="detail-value">${order.urgency}</div>
+                </div>` : ''}
+
+                <hr style="border-color:#333; margin:20px 0;">
+
+                <label>Статус:</label>
+                <select id="edit-status" onchange="toggleMasterField('${order.type}')">${statusSelect}</select>
+
+                <div id="master-field" class="${order.type === 'rental' ? 'hidden' : ''}">
+                    <label>Мастер:</label>
+                    <select id="edit-master">${masterOptions}</select>
+
+                    <label>Время приезда:</label>
+                    <input type="text" id="edit-time" value="${order.master_time || ''}" placeholder="26 апреля, 10:00-14:00">
+                </div>
+
+                <div id="pickup-field" class="${order.type === 'repair' ? 'hidden' : ''}">
+                    <label>Удобное время для выдачи:</label>
+                    <input type="text" id="edit-pickup-time" value="${order.pickup_time || ''}" placeholder="25 апреля, с 10:00">
+                    
+                    <label>Адрес выдачи:</label>
+                    <input type="text" id="edit-pickup-address" value="${order.pickup_address || ''}" placeholder="ул. Ленина, 15">
+                </div>
+
+                <button class="btn btn-accent" onclick="saveOrder(${order.id})" style="margin-top:15px;">💾 Сохранить изменения</button>
+                <button class="btn btn-danger" onclick="deleteOrder(${order.id})" style="margin-top:10px;">🗑️ Удалить заявку</button>
+            `;
+
+            document.getElementById('tab-orders').classList.add('hidden');
+            document.getElementById('tab-masters').classList.add('hidden');
+            document.getElementById('screen-detail').classList.remove('hidden');
+        }
+
+        function toggleMasterField(type) {
+            const status = document.getElementById('edit-status').value;
+            document.getElementById('master-field').classList.toggle('hidden', type === 'rental');
+            
+            const showPickup = type === 'rental' && status === 'ready';
+            document.getElementById('pickup-field').classList.toggle('hidden', !showPickup);
+        }
+
+        function closeDetail() {
+            document.getElementById('screen-detail').classList.add('hidden');
+            document.getElementById('tab-orders').classList.remove('hidden');
+            document.getElementById('tab-masters').classList.add('hidden');
+            loadOrders();
+        }
+
+        async function saveOrder(orderId) {
+            const status = document.getElementById('edit-status').value;
+            const update = { status };
+
+            const order = allOrders.find(o => o.id === orderId);
+            
+            if (order.type === 'repair' || status === 'assigned') {
+                update.master_id = document.getElementById('edit-master').value || null;
+                update.master_time = document.getElementById('edit-time').value || null;
+            }
+
+            if (order.type === 'rental') {
+                update.pickup_time = document.getElementById('edit-pickup-time')?.value || null;
+                update.pickup_address = document.getElementById('edit-pickup-address')?.value || null;
+            }
+
+            const { error } = await db.from('orders').update(update).eq('id', orderId);
+            
+            if (error) {
+                alert('Ошибка: ' + error.message);
+                return;
+            }
+
+            alert('Сохранено!');
+            closeDetail();
+        }
+
+        async function deleteOrder(orderId) {
+            if (!confirm('Точно удалить заявку №' + orderId + '? Это действие необратимо.')) return;
+            
+            const { error } = await db.from('orders').delete().eq('id', orderId);
+            
+            if (error) {
+                alert('Ошибка: ' + error.message);
+                return;
+            }
+            
+            alert('Заявка №' + orderId + ' удалена.');
+            closeDetail();
+        }
+
+        async function loadMasters() {
+            const { data, error } = await db.from('masters').select('*');
+            if (error) return;
+            
+            const tbody = document.querySelector('#masters-table tbody');
+            tbody.innerHTML = '';
+            data.forEach(m => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${m.name}</td>
+                    <td>${m.phone}</td>
+                    <td>${m.specialty === 'electric' ? '⚡ Электрика' : '💧 Сантехника'}</td>
+                    <td>${m.is_active ? '🟢 Активен' : '⚪ Неактивен'}</td>
+                    <td>
+                        <button class="btn btn-sm" onclick="toggleMaster(${m.id}, ${!m.is_active})">${m.is_active ? 'Отключить' : 'Включить'}</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function showAddMaster() {
+            document.getElementById('tab-masters').classList.add('hidden');
+            document.getElementById('screen-add-master').classList.remove('hidden');
+        }
+
+        function closeAddMaster() {
+            document.getElementById('screen-add-master').classList.add('hidden');
+            document.getElementById('tab-masters').classList.remove('hidden');
+        }
+
+        async function addMaster() {
+            const name = document.getElementById('master-name').value;
+            const phone = document.getElementById('master-phone').value;
+            const specialty = document.getElementById('master-specialty').value;
+            const telegram = document.getElementById('master-telegram').value;
+
+            if (!name || !phone) { alert('Заполните имя и телефон'); return; }
+
+            const { error } = await db.from('masters').insert([{
+                name, phone, specialty, telegram, is_active: true
+            }]);
+
+            if (error) { alert('Ошибка: ' + error.message); return; }
+
+            alert('Мастер добавлен!');
+            closeAddMaster();
+            loadMasters();
+        }
+
+        async function toggleMaster(id, isActive) {
+            await db.from('masters').update({ is_active: isActive }).eq('id', id);
+            loadMasters();
+        }
+    </script>
+</body>
+</html>
